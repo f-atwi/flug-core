@@ -1,0 +1,81 @@
+[ "$_hivecore_loaded" ] && return 0
+_hivecore_loaded=1
+
+# ── Shared Fly transport primitives ──────────────────────────────
+# Used by: flexed, fujy, swarmpass, hive
+
+_fly_transport_prepare()
+{
+    typeset tool
+
+    tool="$1"
+    : "${FLY_HOME:=$HOME}"
+    : "${FLY_TMPDIR:=/tmp}"
+    : "${FLY_TARZ:=-z}"
+    : "${_fly_lib:=$FLY_HOME/.fly.d/.fly.lib}"
+    : "${_fly_uuid:=$(cat "$FLY_HOME/.fly.d/.flyuuid" 2>/dev/null || uuidgen)}"
+
+    command -v "$tool" >/dev/null 2>&1 || {
+        echo "hivecore: $tool command not found" >&2
+        return 1
+    }
+    type _fly_pkg_warp >/dev/null 2>&1 || {
+        echo "hivecore: load Fly first (. ~/.fly.d/fly source)" >&2
+        return 1
+    }
+
+    _fly_tmpdir="$FLY_TMPDIR/.fly.$(id -u)/$_fly_uuid"
+    _fly_tarz="$FLY_TARZ"
+}
+
+_fly_transport_stage()
+{
+    typeset transport target stage_cmd
+
+    transport="$1"
+    target="$2"
+    stage_cmd="$(_fly_xpretar);$(_fly_xpackage)"
+
+    case "$transport" in
+        lxc)       _fly_package | lxc exec "$target" -- /bin/sh -c "$stage_cmd" ;;
+        multipass) _fly_package | multipass exec "$target" -- /bin/sh -c "$stage_cmd" ;;
+        juju)      _fly_package | juju ssh "$target" "/bin/sh -c '$stage_cmd'" ;;
+        ssh)       _fly_package | ssh -o ConnectTimeout=10 "$target" "/bin/sh -c '$stage_cmd'" ;;
+    esac
+}
+
+_fly_transport_attach()
+{
+    typeset transport target attach_cmd
+
+    transport="$1"
+    target="$2"
+
+    case "$transport" in
+        juju)
+            attach_cmd="export USER=\$(id -un); export _fujy_juju_cwd=/var/lib/juju; FLY_HOME=$_fly_tmpdir; . \"$_fly_tmpdir/.fly.d/.fly.lib/.loginshell\""
+            juju ssh "$target" "/bin/sh -c '$attach_cmd'"
+            ;;
+        *)
+            attach_cmd="FLY_HOME=$_fly_tmpdir; . \"$_fly_tmpdir/.fly.d/.fly.lib/.loginshell\""
+            case "$transport" in
+                lxc)       lxc exec "$target" -- /bin/sh -c "$attach_cmd" ;;
+                multipass) multipass exec "$target" -- /bin/sh -c "$attach_cmd" ;;
+                ssh)       ssh -t -o ConnectTimeout=10 "$target" "/bin/sh -c '$attach_cmd'" ;;
+            esac
+            ;;
+    esac
+}
+
+_fly_transport_run()
+{
+    typeset transport target
+
+    transport="$1"
+    target="$2"
+    [ "$target" ] || { echo "usage: ... $transport <target> [bash|zsh|ksh]" >&2; return 1; }
+
+    _fly_transport_prepare "$transport" || return $?
+    _fly_transport_stage   "$transport" "$target" || return $?
+    _fly_transport_attach  "$transport" "$target"
+}
