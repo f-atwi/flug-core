@@ -1,5 +1,5 @@
-[ "$_hivecore_loaded" ] && return 0
-_hivecore_loaded=1
+[ "$_hive-core_loaded" ] && return 0
+_hive-core_loaded=1
 
 # ── Shared Fly transport primitives ──────────────────────────────
 # Used by: flexed, fujy, swarmpass, hive
@@ -16,11 +16,11 @@ _fly_transport_prepare()
     : "${_fly_uuid:=$(cat "$FLY_HOME/.fly.d/.flyuuid" 2>/dev/null || uuidgen)}"
 
     command -v "$tool" >/dev/null 2>&1 || {
-        echo "hivecore: $tool command not found" >&2
+        echo "hive-core: $tool command not found" >&2
         return 1
     }
     type _fly_pkg_warp >/dev/null 2>&1 || {
-        echo "hivecore: load Fly first (. ~/.fly.d/fly source)" >&2
+        echo "hive-core: load Fly first (. ~/.fly.d/fly source)" >&2
         return 1
     }
 
