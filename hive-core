@@ -1,6 +1,18 @@
 [ "$_hivecore_loaded" ] && return 0
 _hivecore_loaded=1
 
+# ── Shared completion helper ──────────────────────────────────────
+# Usage: _fly_complete <target-listing-function>
+# Completes the first positional argument only; ignores further words.
+_fly_complete()
+{
+    local cur
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    [[ $COMP_CWORD -gt 1 ]] && return
+    COMPREPLY=($(compgen -W "$("$1" | tr '\n' ' ')" -- "$cur"))
+}
+
 # ── Shared Fly transport primitives ──────────────────────────────
 # Used by: flexed, fujy, swarmpass, hive
 
