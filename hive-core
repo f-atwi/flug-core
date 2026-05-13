@@ -65,11 +65,11 @@ _fly_transport_attach()
 
     case "$transport" in
         juju)
-            attach_cmd="export USER=\$(id -un); export _fujy_juju_cwd=/var/lib/juju; FLY_HOME=$_fly_tmpdir; . \"$_fly_tmpdir/.fly.d/.fly.lib/.loginshell\""
+            attach_cmd="export USER=\$(id -un); export _fujy_juju_cwd=/var/lib/juju; _fly_destshell=\"$_fly_destshell\"; FLY_ETC_RC=\"${FLY_ETC_RC:-true}\"; FLY_USER_RC=\"${FLY_USER_RC:-true}\"; FLY_HOME=$_fly_tmpdir; . \"$_fly_tmpdir/.fly.d/.fly.lib/.loginshell\""
             juju ssh "$target" "/bin/sh -c '$attach_cmd'"
             ;;
         *)
-            attach_cmd="FLY_HOME=$_fly_tmpdir; . \"$_fly_tmpdir/.fly.d/.fly.lib/.loginshell\""
+            attach_cmd="_fly_destshell=\"$_fly_destshell\"; FLY_ETC_RC=\"${FLY_ETC_RC:-true}\"; FLY_USER_RC=\"${FLY_USER_RC:-true}\"; FLY_HOME=$_fly_tmpdir; . \"$_fly_tmpdir/.fly.d/.fly.lib/.loginshell\""
             case "$transport" in
                 lxc)       lxc exec "$target" -- /bin/sh -c "$attach_cmd" ;;
                 multipass) multipass exec "$target" -- /bin/sh -c "$attach_cmd" ;;
